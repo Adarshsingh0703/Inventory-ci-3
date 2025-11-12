@@ -46,11 +46,20 @@
     </div>
 
     <div class="card">
+      <h3>Audit Logs</h3>
+      <p class="muted">See who did what, and when — with before/after snapshots.</p>
+      <div class="links">
+        <a class="btn" href="<?= site_url('audit'); ?>">Open Audit Logs</a>
+      </div>
+    </div>
+
+    <div class="card">
       <h3>API Endpoints</h3>
       <p class="muted">For testing JSON responses (must be logged in):</p>
       <div class="links">
         <a href="<?= site_url('api/items'); ?>" target="_blank" rel="noopener">/api/items</a>
         <a href="<?= site_url('api/categories'); ?>" target="_blank" rel="noopener">/api/categories</a>
+        <a href="<?= site_url('api/audit'); ?>" target="_blank" rel="noopener">/api/audit</a>
       </div>
     </div>
   </div>

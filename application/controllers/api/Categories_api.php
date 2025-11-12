@@ -2,14 +2,18 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /**
- * Categories_api — JSON API for Categories (no page reload)
+ * Categories_api — JSON API for Categories + Audit Logs
  *
- * Routing approach (same as Items_api):
- *   GET    /index.php/api/categories                 -> list
- *   GET    /index.php/api/categories/{id}            -> show
- *   POST   /index.php/api/categories                 -> create
- *   POST   /index.php/api/categories/{id} + _method=PUT    -> update
- *   POST   /index.php/api/categories/{id} + _method=DELETE -> delete
+ * Endpoints (same pattern as Items_api):
+ *   GET    /index.php/api/categories
+ *   GET    /index.php/api/categories/{id}
+ *   POST   /index.php/api/categories
+ *   POST   /index.php/api/categories/{id} + _method=PUT
+ *   POST   /index.php/api/categories/{id} + _method=DELETE
+ *
+ * NOTE: audit_log.item_id references the items table; for category
+ *       actions we log with item_id = NULL and include category data
+ *       inside "details".
  */
 class Categories_api extends CI_Controller
 {
@@ -27,6 +31,7 @@ class Categories_api extends CI_Controller
         }
 
         $this->load->model('Category_model');
+        $this->load->model('Audit_log_model');   // <-- for audit logs
         $this->load->library('form_validation');
     }
 
@@ -73,7 +78,7 @@ class Categories_api extends CI_Controller
         return $this->json($row, 200);
     }
 
-    /** POST /api/categories — create */
+    /** POST /api/categories — create (logs category.create) */
     private function create(array $data)
     {
         $this->form_validation->set_data($data);
@@ -89,12 +94,27 @@ class Categories_api extends CI_Controller
             'parent_id' => isset($data['parent_id']) && $data['parent_id'] !== '' ? (int)$data['parent_id'] : null,
         ]);
 
+        // --- AUDIT: category.create (item_id is NULL)
+        $this->Audit_log_model->log(
+            'category.create',
+            json_encode(['payload' => ['id' => $id] + $data], JSON_UNESCAPED_UNICODE),
+            null
+        );
+
         return $this->json(['message' => 'Created', 'id' => $id], 201);
     }
 
-    /** POST /api/categories/{id} + _method=PUT — update */
+    /** POST /api/categories/{id} + _method=PUT — update (logs category.update) */
     private function update($id, array $data)
     {
+        $old = $this->Category_model->find((int)$id);
+        if (!$old) return $this->json(['error' => 'Not found'], 404);
+
+        // Prevent self-parenting
+        if (isset($data['parent_id']) && (string)$data['parent_id'] !== '' && (int)$data['parent_id'] === (int)$id) {
+            return $this->json(['errors' => ['parent_id' => 'Parent cannot be the same as the category.']], 422);
+        }
+
         $this->form_validation->set_data($data);
         $this->form_validation->set_rules('name', 'Name', 'required|min_length[2]|max_length[255]');
         $this->form_validation->set_rules('parent_id', 'Parent', 'integer');
@@ -103,27 +123,39 @@ class Categories_api extends CI_Controller
             return $this->json(['errors' => $this->form_validation->error_array()], 422);
         }
 
-        // Prevent setting parent to itself
-        if (isset($data['parent_id']) && (string)$data['parent_id'] !== '') {
-            if ((int)$data['parent_id'] === (int)$id) {
-                return $this->json(['errors' => ['parent_id' => 'Parent cannot be the same as the category.']], 422);
-            }
-        }
-
         $ok = $this->Category_model->update_by_id((int)$id, [
             'name'      => trim($data['name']),
             'parent_id' => isset($data['parent_id']) && $data['parent_id'] !== '' ? (int)$data['parent_id'] : null,
         ]);
 
-        if (!$ok) return $this->json(['error' => 'Update failed or not found'], 400);
+        if (!$ok) return $this->json(['error' => 'Update failed'], 400);
+
+        // --- AUDIT: category.update (item_id is NULL)
+        $this->Audit_log_model->log(
+            'category.update',
+            json_encode(['before' => $old, 'after' => $data, 'category_id' => (int)$id], JSON_UNESCAPED_UNICODE),
+            null
+        );
+
         return $this->json(['message' => 'Updated'], 200);
     }
 
-    /** POST /api/categories/{id} + _method=DELETE — delete */
+    /** POST /api/categories/{id} + _method=DELETE — delete (logs category.delete) */
     private function destroy($id)
     {
+        $old = $this->Category_model->find((int)$id);
+        if (!$old) return $this->json(['error' => 'Not found'], 404);
+
         $ok = $this->Category_model->delete_by_id((int)$id);
-        if (!$ok) return $this->json(['error' => 'Delete failed or not found'], 400);
+        if (!$ok) return $this->json(['error' => 'Delete failed'], 400);
+
+        // --- AUDIT: category.delete (item_id is NULL)
+        $this->Audit_log_model->log(
+            'category.delete',
+            json_encode(['deleted' => $old, 'category_id' => (int)$id], JSON_UNESCAPED_UNICODE),
+            null
+        );
+
         return $this->json(['message' => 'Deleted'], 200);
     }
 
