@@ -1,0 +1,29 @@
+# CodeIgniter
+application/cache/*
+application/logs/*
+!application/cache/index.html
+!application/logs/index.html
+
+# Environment files
+.env
+*.env
+
+# OS & IDE files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Composer
+/vendor/
+composer.lock
+
+# Writable
+writable/*
+!writable/index.html
+
+# Node/Frontend (if any)
+node_modules/
+npm-debug.log
