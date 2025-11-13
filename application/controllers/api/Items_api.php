@@ -4,12 +4,9 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 /**
  * Items_api — JSON API for Items (no page reload) + Audit Logs
  *
- * Endpoints (same URL, different method/_method):
- *   GET    /index.php/api/items
- *   GET    /index.php/api/items/{id}
- *   POST   /index.php/api/items                     -> create
- *   POST   /index.php/api/items/{id} + _method=PUT  -> update
- *   POST   /index.php/api/items/{id} + _method=DELETE -> delete
+ * GET /api/items supports pagination:
+ *   ?page=1&per_page=10
+ * Response includes: items[], total, page, per_page, total_pages
  */
 class Items_api extends CI_Controller
 {
@@ -17,7 +14,6 @@ class Items_api extends CI_Controller
     {
         parent::__construct();
 
-        // Require login for all API access
         if (!$this->session->userdata('user_id')) {
             $this->output
                 ->set_status_header(401)
@@ -28,11 +24,10 @@ class Items_api extends CI_Controller
 
         $this->load->model('Item_model');
         $this->load->model('Category_model');
-        $this->load->model('Audit_log_model');   // <-- for audit logs
+        $this->load->model('Audit_log_model');
         $this->load->library('form_validation');
     }
 
-    /** Central router to support GET/POST + _method override for PUT/DELETE */
     public function router($id = null)
     {
         $method = strtoupper($_SERVER['REQUEST_METHOD']);
@@ -42,7 +37,6 @@ class Items_api extends CI_Controller
             return $this->show((int)$id);
         }
 
-        // For non-GET, support JSON body and _method override
         $payload  = $this->readRequestData();
         $override = isset($payload['_method']) ? strtoupper($payload['_method']) : null;
 
@@ -61,15 +55,37 @@ class Items_api extends CI_Controller
         return $this->json(['error' => 'Method Not Allowed'], 405);
     }
 
-    /** GET /api/items — list items (optional search ?q=) */
+    /**
+     * GET /api/items
+     * Supports: q (search), page (1-based), per_page (default 10)
+     */
     private function index()
     {
         $q = trim((string)$this->input->get('q', TRUE));
-        $items = $this->Item_model->list($q, 'id', 'DESC');
-        return $this->json(['items' => $items], 200);
+        $page = (int)$this->input->get('page', TRUE) ?: 1;
+        $per_page = (int)$this->input->get('per_page', TRUE) ?: 10;
+        if ($page < 1) $page = 1;
+        if ($per_page < 1) $per_page = 10;
+        if ($per_page > 200) $per_page = 200;
+
+        $offset = ($page - 1) * $per_page;
+
+        $items = $this->Item_model->list($q, 'id', 'DESC', $per_page, $offset);
+        $total = $this->Item_model->count($q);
+        $total_pages = (int) ceil($total / $per_page);
+
+        return $this->json([
+            'items' => $items,
+            'pagination' => [
+                'total' => $total,
+                'page'  => $page,
+                'per_page' => $per_page,
+                'total_pages' => $total_pages,
+                'offset' => $offset,
+            ],
+        ], 200);
     }
 
-    /** GET /api/items/{id} — get single item */
     private function show($id)
     {
         $item = $this->Item_model->find((int)$id);
@@ -77,7 +93,6 @@ class Items_api extends CI_Controller
         return $this->json($item, 200);
     }
 
-    /** POST /api/items — create item (logs item.create) */
     private function create(array $data)
     {
         $this->form_validation->set_data($data);
@@ -101,17 +116,11 @@ class Items_api extends CI_Controller
             'category_id' => isset($data['category_id']) && $data['category_id'] !== '' ? (int)$data['category_id'] : null,
         ]);
 
-        // --- AUDIT: item.create
-        $this->Audit_log_model->log(
-            'item.create',
-            json_encode(['payload' => $data], JSON_UNESCAPED_UNICODE),
-            $id
-        );
+        $this->Audit_log_model->log('item.create', json_encode(['payload' => $data], JSON_UNESCAPED_UNICODE), $id);
 
         return $this->json(['message' => 'Created', 'id' => $id], 201);
     }
 
-    /** POST /api/items/{id} + _method=PUT — update item (logs item.update) */
     private function update($id, array $data)
     {
         $old = $this->Item_model->find((int)$id);
@@ -140,17 +149,11 @@ class Items_api extends CI_Controller
 
         if (!$ok) return $this->json(['error' => 'Update failed'], 400);
 
-        // --- AUDIT: item.update (store before/after diff)
-        $this->Audit_log_model->log(
-            'item.update',
-            json_encode(['before' => $old, 'after' => $data], JSON_UNESCAPED_UNICODE),
-            $id
-        );
+        $this->Audit_log_model->log('item.update', json_encode(['before' => $old, 'after' => $data], JSON_UNESCAPED_UNICODE), $id);
 
         return $this->json(['message' => 'Updated'], 200);
     }
 
-    /** POST /api/items/{id} + _method=DELETE — delete item (logs item.delete) */
     private function destroy($id)
     {
         $old = $this->Item_model->find((int)$id);
@@ -159,17 +162,11 @@ class Items_api extends CI_Controller
         $ok = $this->Item_model->delete_by_id((int)$id);
         if (!$ok) return $this->json(['error' => 'Delete failed'], 400);
 
-        // --- AUDIT: item.delete (store deleted snapshot)
-        $this->Audit_log_model->log(
-            'item.delete',
-            json_encode(['deleted' => $old], JSON_UNESCAPED_UNICODE),
-            (int)$id
-        );
+        $this->Audit_log_model->log('item.delete', json_encode(['deleted' => $old], JSON_UNESCAPED_UNICODE), (int)$id);
 
         return $this->json(['message' => 'Deleted'], 200);
     }
 
-    /** Utility: unified JSON output */
     private function json($data, $code = 200)
     {
         return $this->output
@@ -178,7 +175,6 @@ class Items_api extends CI_Controller
             ->set_output(json_encode($data));
     }
 
-    /** Utility: read JSON or form data gracefully */
     private function readRequestData()
     {
         $ct = isset($_SERVER['CONTENT_TYPE']) ? strtolower($_SERVER['CONTENT_TYPE']) : '';

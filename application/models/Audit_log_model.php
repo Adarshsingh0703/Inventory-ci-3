@@ -8,10 +8,10 @@ class Audit_log_model extends CI_Model
     /**
      * Write an audit entry.
      *
-     * @param string      $action   Short verb phrase, e.g. "item.create", "item.update", "category.delete"
-     * @param string|null $details  Optional free-text details (JSON/text)
-     * @param int|null    $item_id  Optional related item id
-     * @param int|null    $user_id  Optional user id (defaults to session user)
+     * @param string      $action
+     * @param string|null $details
+     * @param int|null    $item_id
+     * @param int|null    $user_id
      * @return int insert id
      */
     public function log($action, $details = null, $item_id = null, $user_id = null)
@@ -81,5 +81,28 @@ class Audit_log_model extends CI_Model
         $this->db->limit((int)$limit, (int)$offset);
         $q = $this->db->get();
         return $q->result_array();
+    }
+
+    /**
+     * Count total logs matching optional filters.
+     *
+     * @param array $filters
+     * @return int
+     */
+    public function count(array $filters = [])
+    {
+        $this->db->from($this->table.' AS al');
+
+        if (!empty($filters['action'])) {
+            $this->db->like('al.action', $filters['action']);
+        }
+        if (!empty($filters['user_id'])) {
+            $this->db->where('al.user_id', (int)$filters['user_id']);
+        }
+        if (!empty($filters['item_id'])) {
+            $this->db->where('al.item_id', (int)$filters['item_id']);
+        }
+
+        return (int)$this->db->count_all_results();
     }
 }
