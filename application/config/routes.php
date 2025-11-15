@@ -18,6 +18,13 @@ $route['register'] = 'auth/register';
 /* -------- Dashboard -------- */
 $route['dashboard'] = 'dashboard/index';
 
+/* Dashboard metrics JSON (AJAX) */
+$route['api/dashboard_metrics'] = 'dashboard/api_metrics';
+
+/* -------- UI: All Items & All Categories (new pages) -------- */
+$route['all-items'] = 'items_page/index';
+$route['all-categories'] = 'categories_page/index';
+
 /* -------- Web CRUD (Controllers) -------- */
 $route['categories']               = 'categories/index';
 $route['categories/create']        = 'categories/create';
@@ -29,9 +36,7 @@ $route['items/create']             = 'items/create';
 $route['items/edit/(:num)']        = 'items/edit/$1';
 $route['items/delete/(:num)']      = 'items/delete/$1';
 
-/* -------- JSON API: Items --------
-   Uses a single router method with _method override for PUT/DELETE.
-*/
+/* -------- JSON API: Items -------- */
 $route['api/items']        = 'api/items_api/router';
 $route['api/items/(:num)'] = 'api/items_api/router/$1';
 
@@ -39,15 +44,9 @@ $route['api/items/(:num)'] = 'api/items_api/router/$1';
 $route['api/categories']        = 'api/categories_api/router';
 $route['api/categories/(:num)'] = 'api/categories_api/router/$1';
 
-/* -------- JSON API: Audit Logs --------
-   Endpoints:
-     GET    /api/audit
-     GET    /api/audit/{id}
-     POST   /api/audit                      (create manual log)
-     POST   /api/audit/{id} + _method=DELETE (delete a log)
-*/
+/* -------- JSON API: Audit Logs -------- */
 $route['api/audit']        = 'api/audit_api/router';
 $route['api/audit/(:num)'] = 'api/audit_api/router/$1';
 
-/* (Optional) UI route for an Audit Logs page we'll add next */
+/* (Optional) UI route for an Audit Logs page */
 $route['audit'] = 'audit/index';
