@@ -21,20 +21,29 @@ $route['dashboard'] = 'dashboard/index';
 /* Dashboard metrics JSON (AJAX) */
 $route['api/dashboard_metrics'] = 'dashboard/api_metrics';
 
-/* -------- UI: All Items & All Categories (new pages) -------- */
-$route['all-items'] = 'items_page/index';
-$route['all-categories'] = 'categories_page/index';
-
 /* -------- Web CRUD (Controllers) -------- */
+/* UI Pages for Categories (AJAX view) */
 $route['categories']               = 'categories/index';
 $route['categories/create']        = 'categories/create';
 $route['categories/edit/(:num)']   = 'categories/edit/$1';
 $route['categories/delete/(:num)'] = 'categories/delete/$1';
 
+/* Category page (view items by category) */
+$route['category/(:num)'] = 'category_page/view/$1';
+
+/* Bulk CSV for categories */
+$route['categories/export-csv'] = 'categories/export_csv';
+$route['categories/import-csv'] = 'categories/import_csv';
+
+/* UI Pages for Items (AJAX view) */
 $route['items']                    = 'items/index';
 $route['items/create']             = 'items/create';
 $route['items/edit/(:num)']        = 'items/edit/$1';
 $route['items/delete/(:num)']      = 'items/delete/$1';
+
+/* Bulk CSV for items */
+$route['items/export-csv'] = 'items/export_csv';
+$route['items/import-csv'] = 'items/import_csv';
 
 /* -------- JSON API: Items -------- */
 $route['api/items']        = 'api/items_api/router';

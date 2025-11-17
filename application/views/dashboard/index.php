@@ -109,13 +109,13 @@
         </a>
 
         <!-- Items: now loads items section and filters to current user's items -->
-        <a href="#" id="openItemsLink" class="nav-link">
+        <a href="<?= site_url('items'); ?>" class="nav-link">
           <span class="nav-icon"><i class="fa fa-th-large"></i></span>
           <span class="label">Items</span>
         </a>
 
         <!-- Categories: now loads categories section and filters to current user's categories -->
-        <a href="#" id="openCategoriesLink" class="nav-link">
+        <a href="<?= site_url('categories'); ?>" class="nav-link">
           <span class="nav-icon"><i class="fa fa-tags"></i></span>
           <span class="label">Categories</span>
         </a>
@@ -405,7 +405,7 @@
       if (window.innerWidth < 900) { sidebar.classList.remove('open'); appRoot.classList.remove('mobile-open'); }
     });
 
-    // Buttons: Show All vs Show My
+    // Buttons: Show All
     showCategoriesBtn.addEventListener('click', function(){ loadCategories({ userId: null }); });
     refreshCatsBtn.addEventListener('click', function(){ loadCategories(); });
 
