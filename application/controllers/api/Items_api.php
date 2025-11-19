@@ -100,7 +100,7 @@ class Items_api extends CI_Controller
         $this->form_validation->set_rules('sku', 'SKU', 'max_length[100]');
         $this->form_validation->set_rules('description', 'Description', 'max_length[65535]');
         $this->form_validation->set_rules('quantity', 'Quantity', 'required|integer|greater_than_equal_to[0]');
-        $this->form_validation->set_rules('price', 'Price', 'required|decimal');
+        $this->form_validation->set_rules('price', 'Price', 'required|integer|greater_than_equal_to[0]');
         $this->form_validation->set_rules('category_id', 'Category', 'integer');
 
         if (!$this->form_validation->run()) {
@@ -131,7 +131,7 @@ class Items_api extends CI_Controller
         $this->form_validation->set_rules('sku', 'SKU', 'max_length[100]');
         $this->form_validation->set_rules('description', 'Description', 'max_length[65535]');
         $this->form_validation->set_rules('quantity', 'Quantity', 'required|integer|greater_than_equal_to[0]');
-        $this->form_validation->set_rules('price', 'Price', 'required|decimal');
+        $this->form_validation->set_rules('price', 'Price', 'required|integer|greater_than_equal_to[0]');
         $this->form_validation->set_rules('category_id', 'Category', 'integer');
 
         if (!$this->form_validation->run()) {

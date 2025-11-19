@@ -335,7 +335,7 @@
         </div>
         <div>
           <label class="label" for="c_price">Price</label>
-          <input id="c_price" type="number" min="0" step="0.01" value="0.00" required>
+          <input id="c_price" type="number" min="0" step="0" value="0.00" required>
         </div>
         <div style="grid-column:1 / -1">
           <label class="label" for="c_description">Description</label>
